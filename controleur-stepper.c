@@ -6,21 +6,20 @@
  * @author jean-michel-gonet
  */
 
-#include <htc.h>
+#include <xc.h>
 
 /**
  * Configure le ECCP3 et le port A pour produire la commutation
  * de stationnement sur le pas en cours.
  * @param pas Position en cours dans la séquence de stationnement.
  */
-void commutationStationnement(char pas) {
+void commutationStationnement(unsigned char pas) {
     // Séquence de commutation pour le stationnement.
-    static unsigned char commutateursStationnement[] =
-    {
+    static unsigned char commutateursStationnement[] = {
         1, 4, 2, 8
     };
 
-    char n;
+    unsigned char n;
 
     // En arrêt, le PWM est à 50%:
     CCPR3L = 16;
@@ -36,18 +35,15 @@ void commutationStationnement(char pas) {
  * sur la séquence de commutation.
  * @param pas Position en cours dans la séquence de commutation.
  */
-void commutationDeplacement(char pas)
-{
+void commutationDeplacement(char pas) {
     // Valeurs pré-calculées pour les micro-pas.
-    static unsigned char cos[] =
-    {
+    static unsigned char cos[] = {
         32, 31, 27, 22, 16, 10,  5,  1,
          0,  1,  5, 10, 16, 22, 27, 31
     };
 
     // Séquence de commutation pour le déplacement.
-    static unsigned char commutateursDeplacement[] =
-    {
+    static unsigned char commutateursDeplacement[] = {
         5, 6, 10, 9
     };
 
@@ -67,8 +63,7 @@ void commutationDeplacement(char pas)
 /**
  * Liste d'états pour la machine à états.
  */
-enum Etat
-{
+enum Etat {
     /** Le moteur est à l'arrêt, sur un pas entier.*/
     ARRET,
     /** Le moteur avance. */
@@ -84,8 +79,7 @@ enum Etat
 /**
  * Liste d'événements pour la machine à états.
  */
-enum Evenement
-{
+enum Evenement {
     /** Le moteur doit avancer.*/
     AVANCE,
     /** Le moteur doit reculer.*/
@@ -100,19 +94,16 @@ enum Evenement
  * Machine à états.
  * @param evenement L'événement à gérer.
  */
-void machine(enum Evenement evenement)
-{
+void machine(enum Evenement evenement) {
     // État principal de la machine.
     static enum Etat etat = ARRET;
 
     // Position dans la séquence de commutation, entre 0 et 31.
     static unsigned char pas = 0;
 
-    switch(etat)
-    {
+    switch(etat) {
         case ARRET:
-            switch(evenement)
-            {
+            switch(evenement) {
                 case AVANCE:
                     etat = MARCHE_AVANT;
                     break;
@@ -125,13 +116,11 @@ void machine(enum Evenement evenement)
         // Le moteur avance en suivant la séquence de commutation
         // jusqu'à ce qu'il reçoive l'ordre de s'arrêter.
         case MARCHE_AVANT:
-            switch(evenement)
-            {
+            switch(evenement) {
                 case TICTAC:
                     commutationDeplacement(pas);
                     pas++;
-                    if (pas > 31)
-                    {
+                    if (pas > 31) {
                         pas = 0;
                     }
                     break;
@@ -145,11 +134,9 @@ void machine(enum Evenement evenement)
         // Le moteur continue d'avancer jusqu'à ce qu'il
         // arrive sur un pas entier.
         case FREIN_AVANT:
-            switch(evenement)
-            {
+            switch(evenement) {
                 case TICTAC:
-                    switch(pas)
-                    {
+                    switch(pas) {
                         case 0:
                         case 8:
                         case 16:
@@ -160,8 +147,7 @@ void machine(enum Evenement evenement)
                         default:
                             commutationDeplacement(pas);
                             pas++;
-                            if (pas > 31)
-                            {
+                            if (pas > 31) {
                                 pas = 0;
                             }
                             break;
@@ -170,13 +156,11 @@ void machine(enum Evenement evenement)
             }
             break;
         case MARCHE_ARRIERE:
-            switch(evenement)
-            {
+            switch(evenement) {
                 case TICTAC:
                     commutationDeplacement(pas);
                     pas--;
-                    if (pas > 31)
-                    {
+                    if (pas > 31) {
                         pas = 31;
                     }
                     break;
@@ -190,11 +174,9 @@ void machine(enum Evenement evenement)
         // Le moteur continue de reculer jusqu'à ce qu'il
         // arrive sur un pas entier.
         case FREIN_ARRIERE:
-            switch(evenement)
-            {
+            switch(evenement) {
                 case TICTAC:
-                    switch(pas)
-                    {
+                    switch(pas) {
                         case 0:
                         case 8:
                         case 16:
@@ -205,8 +187,7 @@ void machine(enum Evenement evenement)
                         default:
                             commutationDeplacement(pas);
                             pas--;
-                            if (pas > 31)
-                            {
+                            if (pas > 31) {
                                 pas = 31;
                             }
                             break;
@@ -218,41 +199,30 @@ void machine(enum Evenement evenement)
 }
 
 /**
- * Interruptions de haute priorité.
+ * Interruptions.
  */
-void interrupt interruptionsHP()
-{
+void interrupt interruptionsHP() {
+    
     static char n = 0;
 
     // Détecte de quel type d'interruption il s'agit:
-    if (PIR1bits.TMR2IF)
-    {
+    if (PIR1bits.TMR2IF) {
         PIR1bits.TMR2IF = 0;
-        if (n == 0)
-        {
+        if (n == 0) {
             machine(TICTAC);
         }
         n++;
-        if (n > 25)
-        {
+        if (n > 25) {
             n = 0;
         }
     }
-}
 
-/**
- * Interruptions de basse priorité.
- */
-void interrupt low_priority interruptionsBP()
-{
     // Détecte de quel type d'interruption il s'agit:
-    if (INTCON3bits.INT2IF)
-    {
+    if (INTCON3bits.INT2IF) {
         INTCON3bits.INT2IF=0;
         machine(AVANCE);
     }
-    if (INTCON3bits.INT1IF)
-    {
+    if (INTCON3bits.INT1IF) {
         INTCON3bits.INT1IF = 0;
         machine(RECULE);
     }
@@ -263,8 +233,7 @@ void interrupt low_priority interruptionsBP()
  * Configure le port A comme sortie, le temporisateur 2, le module
  * CCP3 et les interruptions INT0 et INT1.
  */
-void main()
-{
+void main() {
     ANSELA = 0x00;      // Désactive les convertisseurs A/D.
     ANSELB = 0x00;      // Désactive les convertisseurs A/D.
     ANSELC = 0x00;      // Désactive les convertisseurs A/D.
@@ -305,14 +274,14 @@ void main()
     INTCON2bits.INTEDG1 = 0;    // Int. de INT1 sur flanc descendant.
 
     INTCON3bits.INT2IE = 1;     // Interruptions pour INT2...
-    INTCON3bits.INT2IP = 0;     // ... en basse priorité.
+    INTCON3bits.INT2IP = 1;     // ... en basse priorité.
     INTCON3bits.INT1IE = 1;     // Interruptions pour INT1...
-    INTCON3bits.INT1IP = 0;     // ... en basse priorité.
+    INTCON3bits.INT1IP = 1;     // ... en basse priorité.
 
-    // Active les interruptions de haute priorité et basse priorité:
+    // Active les interruptions de haute priorité:
     RCONbits.IPEN = 1;
     INTCONbits.GIEH = 1;
-    INTCONbits.GIEL = 1;
+    INTCONbits.GIEL = 0;
 
     // Place le moteur en position arrêtée sur le pas 0:
     commutationStationnement(0);
