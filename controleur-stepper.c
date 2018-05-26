@@ -257,12 +257,12 @@ void main() {
     PORTB = 0x00;
     PORTC = 0xFF;
 
-    // Prépare les interruptions de haute priorité tmr2:
+    // Prépare les interruptions de haute priorité temporisateur 2:
     PIE1bits.TMR2IE = 1;        // Active les interruptions.
     IPR1bits.TMR2IP = 1;        // En haute priorité.
     PIR1bits.TMR2IF = 0;        // Baisse le drapeau.
 
-    // Pr�pare les interruptions de basse priorité INT1 et INT2:
+    // Prépare les interruptions de basse priorité INT1 et INT2:
     TRISBbits.RB2 = 1;          // INT2 comme entrée digitale.
     TRISBbits.RB1 = 1;          // INT1 comme entrée digitale.
 
